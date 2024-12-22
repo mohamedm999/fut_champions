@@ -120,11 +120,11 @@
                         $result = mysqli_query($conn, $query);
                 
                         while($row = mysqli_fetch_array($result)) {
-                            echo "<tr class='group hover:bg-gray-700/30 transition-all duration-200'>";
+                            echo "<tr id='row{$row['id']}' class='group hover:bg-gray-700/30 transition-all duration-200'>";
                             echo "<td class='px-6 py-4 text-sm text-gray-400'>#" . $row['id'] . "</td>";
                             echo "<td class='px-6 py-4 text-sm text-white'>" . $row['nom_player'] . "</td>";
                             echo "<td class='px-6 py-4'>
-                                    <span class='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-800/50'>" 
+                                    <span class='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-800/50' data-position='{$row['positions']}'>" 
                                     . $row['positions'] . 
                                     "</span>
                                   </td>";
@@ -145,7 +145,7 @@
                                                       d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'/>
                                             </svg>
                                         </button>
-                                        <button class='text-gray-400 hover:text-red-400 transition-colors duration-200'>
+                                        <button class='delete-btn' data-id='{$row['id']}' data-position='{$row['positions']}' class='text-gray-400 hover:text-red-400 transition-colors duration-200'>
                                             <svg class='h-5 w-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                                                 <path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' 
                                                       d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'/>
@@ -166,3 +166,40 @@
         </div>
     </div>
 </div>
+<script>
+        
+    document.addEventListener('DOMContentLoaded', function () {
+
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+
+            const id = this.dataset.id; 
+            const position = this.dataset.position;
+
+            if (confirm('Are you sure you want to delete this row?')) {
+                fetch('../../backend/deleteplayer.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id, position: position }) 
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status) {
+                        document.getElementById('row' + id).remove();
+                    } else {
+                        alert('Error deleting record: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred');
+                });
+            }
+        });
+    });
+});
+</script>

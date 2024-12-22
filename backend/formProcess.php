@@ -176,38 +176,95 @@ if (!isset($_FILES['photo_player']) || $_FILES['photo_player']['error'] === UPLO
 
 if (!$errors) {
 
-    $upload_dir = 'playerImage/';
-    $file_name = uniqid() . '_' . basename($_FILES['photo']['name']);
-    $upload_path = $upload_dir . $file_name;
+    $upload_dir = 'src/playerImage/';
+    $photo_file = uniqid() . '_' . basename($_FILES['photo_player']['name']);
+
+
+    $photo_path = $upload_dir . $photo_file;
 
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }
 
-    if (move_uploaded_file($_FILES['photo']['tmp_name'], $upload_path)) {
+    if (move_uploaded_file($_FILES['photo_player']['tmp_name'], $photo_path)) {
 
-        include "./backend/config.php";
+        include "../backend/config.php";
 
         if (!$conn) {
             $response['message'] = 'Database connection failed: ' . mysqli_connect_error();
         } else {
    
-            $username = mysqli_real_escape_string($conn, $username);
-            $photo_path = mysqli_real_escape_string($conn, $upload_path);
+            $username = mysqli_real_escape_string($conn, trim($_POST['nom_player']));
+            $position = mysqli_real_escape_string($conn, $_POST['positions']);
+            $club = mysqli_real_escape_string($conn, $_POST['club_select']);
+            $nationality = mysqli_real_escape_string($conn, $_POST['nationality_select']);
+            $rating = (int) $_POST['rating'];
+            $photo_path = mysqli_real_escape_string($conn, $photo_path);
+             
+            $Nat = "SELECT id FROM nationalite WHERE name_nationality = '$nationality'";
+            $result = mysqli_query($conn, $Nat);  
+            $row = mysqli_fetch_assoc($result);
+            $idNat = $row['id'];
+            
+            $Clb = "SELECT id FROM club WHERE name_club = '$club'"; 
+            $result = mysqli_query($conn, $Clb);
+            $row = mysqli_fetch_assoc($result);
+            $idClb = $row['id'];
+        
+
+            $stats = [];
+            if ($position === "GK") {
+                $stats = [
+                    'diving' => (int) $_POST['diving'],
+                    'handling' => (int) $_POST['handling'],
+                    'kicking' => (int) $_POST['kicking'],
+                    'positioning' => (int) $_POST['positioning'],
+                    'reflexes' => (int) $_POST['reflexes'],
+                    'speed' => (int) $_POST['speed'],
+                ];
+            } else {
+                $stats = [
+                    'pace' => (int) $_POST['pace'],
+                    'shooting' => (int) $_POST['shooting'],
+                    'passing' => (int) $_POST['passing'],
+                    'dribbling' => (int) $_POST['dribbling'],
+                    'defending' => (int) $_POST['defending'],
+                    'physical' => (int) $_POST['physical'],
+                ];
+            }
 
 
-            $query = "INSERT INTO personne_info (nom,photo) VALUES ('$username', '$photo_path')";
+            $query = "INSERT INTO player (nom_player,player_photo,positions,rating,club_id,nationalite_id) 
+            VALUES ('$username', '$photo_path','$position','$rating','$idClb','$idNat')";
+
+
             
             $addData = mysqli_query($conn, $query);
 
-
             if ($addData) {
-                $response['success'] = true;
-                $response['message'] = 'Form submitted and data saved successfully!';
-            } else {
-                $response['message'] = 'Error inserting data: ' . mysqli_error($conn);
+                $last_id = mysqli_insert_id($conn);
+            
+                if ($position == 'Gk') {
+                    $query1 = "
+                    INSERT INTO goal_keeper (player_id, " . implode(", ", array_keys($stats)) . ")
+                    VALUES ($last_id, '" . implode("', '", $stats) . "')
+                    ";
+                } else {
+                    $query1 = "
+                    INSERT INTO no_goal_keeper (player_id, " . implode(", ", array_keys($stats)) . ")
+                    VALUES ($last_id, '" . implode("', '", $stats) . "')
+                    ";
+                }
+            
+                $addStats = mysqli_query($conn, $query1);
+            
+                if ($addStats) {
+                    $response['success'] = true;
+                    $response['message'] = 'Form submitted and data saved successfully!';
+                } else {
+                    $response['message'] = 'Error inserting data: ' . mysqli_error($conn);
+                }
             }
-
             mysqli_close($conn);
         }
     }
