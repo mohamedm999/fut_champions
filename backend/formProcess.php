@@ -1,13 +1,15 @@
 <?php
-header('Content-Type: application/json');
 
 $response = ['success' => false];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Content-Type: application/json');
     $response['message'] = 'Invalid request method';
     echo json_encode($response);
     exit;
 }
+
+$response['message'] = 'Invalid request method';
 
 $errors = false;
 
@@ -174,6 +176,8 @@ if (!isset($_FILES['photo_player']) || $_FILES['photo_player']['error'] === UPLO
     }
 }
 
+
+
 if (!$errors) {
 
     $upload_dir = 'src/playerImage/';
@@ -213,7 +217,7 @@ if (!$errors) {
         
 
             $stats = [];
-            if ($position === "GK") {
+            if ($position == "GK") {
                 $stats = [
                     'diving' => (int) $_POST['diving'],
                     'handling' => (int) $_POST['handling'],
@@ -244,7 +248,7 @@ if (!$errors) {
             if ($addData) {
                 $last_id = mysqli_insert_id($conn);
             
-                if ($position == 'Gk') {
+                if ($position == 'GK') {
                     $query1 = "
                     INSERT INTO goal_keeper (player_id, " . implode(", ", array_keys($stats)) . ")
                     VALUES ($last_id, '" . implode("', '", $stats) . "')
